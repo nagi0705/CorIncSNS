@@ -10,8 +10,13 @@
     "test": "jest"
   },
   "dependencies": {
+    "@nuxtjs/axios": "^5.13.6",
     "core-js": "^3.25.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "google-translate-api-x": "^10.7.2",
     "nuxt": "^2.15.8",
+    "twitter-lite": "^1.1.0",
     "vue": "^2.7.10",
     "vue-server-renderer": "^2.7.10",
     "vue-template-compiler": "^2.7.10"

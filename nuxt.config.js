@@ -23,8 +23,9 @@ export default {
   css: [
   ],
 
-  // プラグイン設定（必要に応じて追加）
+  // プラグイン設定
   plugins: [
+    '~/plugins/translate.ts'
   ],
 
   // 自動コンポーネント読み込み
@@ -32,17 +33,24 @@ export default {
 
   // 開発・ビルド用モジュール（Nuxt 2 では buildModules を使用）
   buildModules: [
-    // TypeScript サポート
     '@nuxt/typescript-build',
-    // Tailwind CSS モジュール（Nuxt 2 用）
     '@nuxtjs/tailwindcss'
   ],
 
-  // 通常のモジュール設定（必要に応じて追加）
+  // 通常のモジュール設定
   modules: [
+    '@nuxtjs/axios'
+  ],
+
+  // サーバーミドルウェアの登録
+  serverMiddleware: [
+    '~/server-middleware/twitter.js'
   ],
 
   // ビルド設定
-  build: {
+   build: {
+    transpile: [
+      'google-translate-api-x'
+    ]
   }
 }
