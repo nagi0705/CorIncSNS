@@ -44,7 +44,9 @@ export default {
 
   // サーバーミドルウェアの登録
   serverMiddleware: [
-    '~/server-middleware/twitter.js'
+    '~/server-middleware/twitter.js',
+    '~/server-middleware/sns.js',
+    '~/server-middleware/translate.js'
   ],
 
   // ビルド設定
