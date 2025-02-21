@@ -1,37 +1,29 @@
 <template>
     <div class="file-uploader">
+        <!-- ファイル選択ボタン -->
         <input type="file" @change="handleFileUpload" accept="image/*,video/*" />
 
         <!-- プレビューエリア -->
         <div v-if="previewUrl" class="preview">
-            <img v-if="isImage" :src="previewUrl" alt="画像プレビュー" class="preview-image" @click="openModal" />
+            <img v-if="isImage" :src="previewUrl" alt="画像プレビュー" class="preview-image" />
             <video v-if="isVideo" :src="previewUrl" controls class="preview-video"></video>
         </div>
-
-        <!-- モーダル -->
-        <Modal v-if="isModalOpen" :isOpen="isModalOpen" @close="closeModal">
-            <img v-if="isImage" :src="previewUrl" alt="拡大プレビュー" class="modal-image" />
-            <video v-if="isVideo" :src="previewUrl" controls class="modal-video"></video>
-        </Modal>
     </div>
 </template>
 
 <script lang="ts">
 import Vue from "vue";
-import Modal from "@/components/Modal.vue";
 
 export default Vue.extend({
-    components: { Modal },
     data() {
         return {
             previewUrl: "",
             isImage: false,
             isVideo: false,
-            isModalOpen: false
         };
     },
     methods: {
-        handleFileUpload(event: Event) {
+        async handleFileUpload(event: Event) {
             const file = (event.target as HTMLInputElement).files?.[0];
             if (!file) return;
 
@@ -45,12 +37,22 @@ export default Vue.extend({
             }
 
             this.previewUrl = URL.createObjectURL(file);
+
+            // 🔥 自動アップロード処理を追加
+            await this.uploadFile(file);
         },
-        openModal() {
-            this.isModalOpen = true;
-        },
-        closeModal() {
-            this.isModalOpen = false;
+
+        async uploadFile(file: File) {
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const response = await this.$axios.$post("/api/upload", formData);
+                this.$emit("upload-success", response.fileUrl); // 🔥 親コンポーネントにURLを渡す
+            } catch (error) {
+                console.error("アップロード失敗:", error);
+                alert("アップロードに失敗しました ❌");
+            }
         }
     }
 });
@@ -59,13 +61,23 @@ export default Vue.extend({
 <style scoped>
 .preview-image {
     width: 100%;
-    max-width: 300px;
+    /* コンテナの幅いっぱいに広がる */
+    max-width: 400px;
+    /* 最大幅を制限 */
     border-radius: 5px;
-    cursor: pointer;
+    margin-top: 10px;
+    display: block;
+    /* ボタンが画像の下に配置されるようにする */
 }
 
-.modal-image,
-.modal-video {
-    max-width: 80%;
+.preview-video {
+    width: 100%;
+    max-width: 400px;
+    margin-top: 10px;
+}
+
+.file-uploader {
+    margin-bottom: 20px;
+    /* 下に余白を確保 */
 }
 </style>

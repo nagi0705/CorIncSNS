@@ -19,7 +19,7 @@
     <!-- 画像・動画アップロード -->
     <div class="mb-4">
       <h2 class="text-xl font-bold mb-2">画像/動画アップロード</h2>
-      <FileUploader />
+      <FileUploader @upload-success="addFileUrlToPost" />
     </div>
 
     <!-- SNS 投稿ボタン -->
@@ -28,19 +28,39 @@
       <div class="space-y-2">
         <div class="flex space-x-2">
           <button @click="postToSNS('twitter', 'original')" class="bg-blue-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">Twitter（テキスト）</button>
+            :disabled="isTextTooLong">
+            Twitter（テキスト）
+          </button>
           <button @click="postToSNS('twitter', 'translated')" class="bg-blue-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">Twitter（翻訳）</button>
+            :disabled="isTextTooLong">
+            Twitter（翻訳）
+          </button>
           <button @click="postToSNS('twitter', 'both')" class="bg-blue-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">Twitter（両方）</button>
+            :disabled="isTextTooLong">
+            Twitter（両方）
+          </button>
+          <button @click="postToSNS('twitter', 'media')" class="bg-blue-400 text-white px-4 py-2 rounded"
+            :disabled="!uploadedFileUrl">
+            Twitter（画像/動画）
+          </button>
         </div>
         <div class="flex space-x-2">
           <button @click="postToSNS('linkedin', 'original')" class="bg-pink-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">LinkedIn（テキスト）</button>
+            :disabled="isTextTooLong">
+            LinkedIn（テキスト）
+          </button>
           <button @click="postToSNS('linkedin', 'translated')" class="bg-pink-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">LinkedIn（翻訳）</button>
+            :disabled="isTextTooLong">
+            LinkedIn（翻訳）
+          </button>
           <button @click="postToSNS('linkedin', 'both')" class="bg-pink-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">LinkedIn（両方）</button>
+            :disabled="isTextTooLong">
+            LinkedIn（両方）
+          </button>
+          <button @click="postToSNS('linkedin', 'media')" class="bg-pink-400 text-white px-4 py-2 rounded"
+            :disabled="!uploadedFileUrl">
+            LinkedIn（画像/動画）
+          </button>
         </div>
       </div>
     </div>
@@ -65,6 +85,7 @@ export default Vue.extend({
       translationResult: '',
       notification: { message: '', type: 'success' },
       debouncedTranslate: null as unknown as (text: string) => void,
+      uploadedFileUrl: "", // 🔥 画像URLを保持
     };
   },
   computed: {
@@ -76,7 +97,7 @@ export default Vue.extend({
     postText: {
       handler(newText) {
         if (this.debouncedTranslate) {
-          this.debouncedTranslate(newText);
+          this.debouncedTranslate(newText); // 🔥 テキスト変更時に翻訳を実行
         }
       },
       immediate: true,
@@ -96,6 +117,7 @@ export default Vue.extend({
         this.notification = { message: '翻訳失敗', type: 'error' };
       }
     },
+
     async postToSNS(platform: string, type: string) {
       if (this.isTextTooLong) {
         this.notification = { message: '140文字以内で入力してください。', type: 'error' };
@@ -103,12 +125,20 @@ export default Vue.extend({
       }
 
       let textToPost = '';
+
+      // 🔥 画像URLを含めた投稿内容を作成
       if (type === 'original') {
         textToPost = this.postText;
       } else if (type === 'translated') {
         textToPost = this.translationResult;
       } else if (type === 'both') {
         textToPost = `原文: ${this.postText}\n翻訳: ${this.translationResult}`;
+      } else if (type === 'media') {
+        if (!this.uploadedFileUrl) {
+          this.notification = { message: '画像または動画をアップロードしてください。', type: 'error' };
+          return;
+        }
+        textToPost = `📷 ${this.uploadedFileUrl}`;
       }
 
       if (!textToPost) {
@@ -123,6 +153,10 @@ export default Vue.extend({
         console.error(error);
         this.notification = { message: `${platform.toUpperCase()} 投稿失敗`, type: 'error' };
       }
+    },
+
+    addFileUrlToPost(url: string) {
+      this.uploadedFileUrl = url; // 🔥 画像URLを保持し、投稿時に付与
     },
   },
   created() {
