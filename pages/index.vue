@@ -44,24 +44,6 @@
             Twitter（画像/動画）
           </button>
         </div>
-        <div class="flex space-x-2">
-          <button @click="postToSNS('linkedin', 'original')" class="bg-pink-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">
-            LinkedIn（テキスト）
-          </button>
-          <button @click="postToSNS('linkedin', 'translated')" class="bg-pink-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">
-            LinkedIn（翻訳）
-          </button>
-          <button @click="postToSNS('linkedin', 'both')" class="bg-pink-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">
-            LinkedIn（両方）
-          </button>
-          <button @click="postToSNS('linkedin', 'media')" class="bg-pink-400 text-white px-4 py-2 rounded"
-            :disabled="!uploadedFileUrl">
-            LinkedIn（画像/動画）
-          </button>
-        </div>
       </div>
     </div>
 
@@ -104,20 +86,6 @@ export default Vue.extend({
     },
   },
   methods: {
-    async translateText() {
-      if (this.isTextTooLong) {
-        this.notification = { message: '140文字以内で入力してください。', type: 'error' };
-        return;
-      }
-      try {
-        const result = await this.$translate(this.postText, 'en');
-        this.translationResult = result;
-      } catch (error) {
-        console.error('翻訳エラー:', error);
-        this.notification = { message: '翻訳失敗', type: 'error' };
-      }
-    },
-
     async postToSNS(platform: string, type: string) {
       if (this.isTextTooLong) {
         this.notification = { message: '140文字以内で入力してください。', type: 'error' };
@@ -126,7 +94,6 @@ export default Vue.extend({
 
       let textToPost = '';
 
-      // 🔥 画像URLを含めた投稿内容を作成
       if (type === 'original') {
         textToPost = this.postText;
       } else if (type === 'translated') {
@@ -156,7 +123,21 @@ export default Vue.extend({
     },
 
     addFileUrlToPost(url: string) {
-      this.uploadedFileUrl = url; // 🔥 画像URLを保持し、投稿時に付与
+      console.log("受け取った画像URL:", url); // 🔥 デバッグ用
+      this.uploadedFileUrl = url;
+    },
+
+    async translateText(text: string) {
+      try {
+        const response = await this.$axios.$post('/api/translate', { 
+          text,
+          targetLang: 'en'  // 翻訳先言語を指定
+        });
+        this.translationResult = response.translatedText;
+      } catch (error) {
+        console.error('翻訳エラー:', error);
+        this.notification = { message: '翻訳に失敗しました', type: 'error' };
+      }
     },
   },
   created() {
