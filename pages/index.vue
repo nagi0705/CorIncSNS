@@ -26,6 +26,7 @@
     <div class="mb-4">
       <h2 class="text-xl font-bold mb-2">SNS 投稿</h2>
       <div class="space-y-2">
+        <!-- Twitter 投稿ボタン -->
         <div class="flex space-x-2">
           <button @click="postToSNS('twitter', 'original')" class="bg-blue-400 text-white px-4 py-2 rounded"
             :disabled="isTextTooLong">
@@ -42,6 +43,46 @@
           <button @click="postToSNS('twitter', 'media')" class="bg-blue-400 text-white px-4 py-2 rounded"
             :disabled="!uploadedFileUrl">
             Twitter（画像/動画）
+          </button>
+        </div>
+
+        <!-- Facebook 投稿ボタン -->
+        <div class="flex space-x-2">
+          <button @click="postToSNS('facebook', 'original')" class="bg-yellow-400 text-white px-4 py-2 rounded"
+            :disabled="isTextTooLong">
+            Facebook（テキスト）
+          </button>
+          <button @click="postToSNS('facebook', 'translated')" class="bg-yellow-400 text-white px-4 py-2 rounded"
+            :disabled="isTextTooLong">
+            Facebook（翻訳）
+          </button>
+          <button @click="postToSNS('facebook', 'both')" class="bg-yellow-400 text-white px-4 py-2 rounded"
+            :disabled="isTextTooLong">
+            Facebook（両方）
+          </button>
+          <button @click="postToSNS('facebook', 'media')" class="bg-yellow-400 text-white px-4 py-2 rounded"
+            :disabled="!uploadedFileUrl">
+            Facebook（画像/動画）
+          </button>
+        </div>
+
+        <!-- Instagram 投稿ボタン -->
+        <div class="flex space-x-2">
+          <button @click="postToSNS('instagram', 'original')" class="bg-pink-400 text-white px-4 py-2 rounded"
+            :disabled="isTextTooLong">
+            Instagram（テキスト）
+          </button>
+          <button @click="postToSNS('instagram', 'translated')" class="bg-pink-400 text-white px-4 py-2 rounded"
+            :disabled="isTextTooLong">
+            Instagram（翻訳）
+          </button>
+          <button @click="postToSNS('instagram', 'both')" class="bg-pink-400 text-white px-4 py-2 rounded"
+            :disabled="isTextTooLong">
+            Instagram（両方）
+          </button>
+          <button @click="postToSNS('instagram', 'media')" class="bg-pink-400 text-white px-4 py-2 rounded"
+            :disabled="!uploadedFileUrl">
+            Instagram（画像/動画）
           </button>
         </div>
       </div>
@@ -66,8 +107,8 @@ export default Vue.extend({
       postText: '',
       translationResult: '',
       notification: { message: '', type: 'success' },
-      debouncedTranslate: null as unknown as (text: string) => void,
-      uploadedFileUrl: "", // 🔥 画像URLを保持
+      uploadedFileUrl: "",
+      debouncedTranslate: null as unknown as (text: string) => void, // 🔥 翻訳用のデバウンス関数
     };
   },
   computed: {
@@ -92,11 +133,8 @@ export default Vue.extend({
         return;
       }
 
-      let textToPost = '';
-
-      if (type === 'original') {
-        textToPost = this.postText;
-      } else if (type === 'translated') {
+      let textToPost = this.postText;
+      if (type === 'translated') {
         textToPost = this.translationResult;
       } else if (type === 'both') {
         textToPost = `原文: ${this.postText}\n翻訳: ${this.translationResult}`;
@@ -106,11 +144,6 @@ export default Vue.extend({
           return;
         }
         textToPost = `📷 ${this.uploadedFileUrl}`;
-      }
-
-      if (!textToPost) {
-        this.notification = { message: '投稿する内容がありません。', type: 'error' };
-        return;
       }
 
       try {
@@ -123,15 +156,14 @@ export default Vue.extend({
     },
 
     addFileUrlToPost(url: string) {
-      console.log("受け取った画像URL:", url); // 🔥 デバッグ用
       this.uploadedFileUrl = url;
     },
 
     async translateText(text: string) {
       try {
-        const response = await this.$axios.$post('/api/translate', { 
+        const response = await this.$axios.$post('/api/translate', {
           text,
-          targetLang: 'en'  // 翻訳先言語を指定
+          targetLang: 'en' // 翻訳先言語を指定
         });
         this.translationResult = response.translatedText;
       } catch (error) {
@@ -141,7 +173,7 @@ export default Vue.extend({
     },
   },
   created() {
-    this.debouncedTranslate = debounce(this.translateText, 500);
+    this.debouncedTranslate = debounce(this.translateText, 500); // 🔥 翻訳処理をデバウンス化
   },
 });
 </script>
