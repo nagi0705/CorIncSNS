@@ -26,5 +26,15 @@ const postToSNS = (platform) => {
 app.post('/api/post-to-twitter', postToSNS("Twitter"));
 app.post('/api/post-to-facebook', postToSNS("Facebook"));
 app.post('/api/post-to-instagram', postToSNS("Instagram"));
+app.post('/api/post-to-linkedin', (req, res) => {
+  const { text, translation, mediaUrl } = req.body;
+
+  console.log("📢 LinkedIn 投稿リクエスト:", { text, translation, mediaUrl });
+
+  res.json({
+    message: "Dummy LinkedIn post successful",
+    postedData: { text, translation, mediaUrl }
+  });
+});
 
 module.exports = app;

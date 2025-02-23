@@ -15,6 +15,9 @@
         <button @click="login('instagram')" class="bg-pink-400 text-white px-4 py-2 rounded">
           Instagram ログイン
         </button>
+        <button @click="login('linkedin')" class="bg-blue-700 text-white px-4 py-2 rounded">
+          LinkedIn ログイン
+        </button>
       </div>
       <p v-if="user.name" class="text-green-600 mt-2">ログイン中: {{ user.name }}</p>
     </div>
@@ -22,7 +25,8 @@
     <!-- テキスト入力 -->
     <div class="mb-4">
       <label for="inputText" class="block text-lg">テキスト入力（最大140文字）</label>
-      <textarea id="inputText" v-model="postText" class="w-full border p-2" placeholder="ここにテキストを入力してください"></textarea>
+      <textarea id="inputText" v-model="postText" @input="debouncedTranslate" class="w-full border p-2"
+        placeholder="ここにテキストを入力してください"></textarea>
       <p class="text-sm text-gray-500">{{ postText.length }}/140 文字</p>
       <p v-if="isTextTooLong" class="text-red-500 text-sm mt-1">⚠️ 140文字以内で入力してください。</p>
     </div>
@@ -43,63 +47,11 @@
     <div class="mb-4">
       <h2 class="text-xl font-bold mb-2">SNS 投稿</h2>
       <div class="space-y-2">
-        <!-- Twitter 投稿ボタン -->
-        <div class="flex space-x-2">
-          <button @click="postToSNS('twitter', 'original')" class="bg-blue-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">
-            Twitter（テキスト）
-          </button>
-          <button @click="postToSNS('twitter', 'translated')" class="bg-blue-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">
-            Twitter（翻訳）
-          </button>
-          <button @click="postToSNS('twitter', 'both')" class="bg-blue-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">
-            Twitter（両方）
-          </button>
-          <button @click="postToSNS('twitter', 'media')" class="bg-blue-400 text-white px-4 py-2 rounded"
-            :disabled="!uploadedFileUrl">
-            Twitter（画像/動画）
-          </button>
-        </div>
-
-        <!-- Facebook 投稿ボタン -->
-        <div class="flex space-x-2">
-          <button @click="postToSNS('facebook', 'original')" class="bg-yellow-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">
-            Facebook（テキスト）
-          </button>
-          <button @click="postToSNS('facebook', 'translated')" class="bg-yellow-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">
-            Facebook（翻訳）
-          </button>
-          <button @click="postToSNS('facebook', 'both')" class="bg-yellow-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">
-            Facebook（両方）
-          </button>
-          <button @click="postToSNS('facebook', 'media')" class="bg-yellow-400 text-white px-4 py-2 rounded"
-            :disabled="!uploadedFileUrl">
-            Facebook（画像/動画）
-          </button>
-        </div>
-
-        <!-- Instagram 投稿ボタン -->
-        <div class="flex space-x-2">
-          <button @click="postToSNS('instagram', 'original')" class="bg-pink-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">
-            Instagram（テキスト）
-          </button>
-          <button @click="postToSNS('instagram', 'translated')" class="bg-pink-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">
-            Instagram（翻訳）
-          </button>
-          <button @click="postToSNS('instagram', 'both')" class="bg-pink-400 text-white px-4 py-2 rounded"
-            :disabled="isTextTooLong">
-            Instagram（両方）
-          </button>
-          <button @click="postToSNS('instagram', 'media')" class="bg-pink-400 text-white px-4 py-2 rounded"
-            :disabled="!uploadedFileUrl">
-            Instagram（画像/動画）
+        <!-- 各SNS投稿ボタン -->
+        <div v-for="platform in platforms" :key="platform.name" class="flex space-x-2">
+          <button v-for="type in platform.types" :key="type" @click="postToSNS(platform.name, type)"
+            :class="platform.buttonClass" class="text-white px-4 py-2 rounded" :disabled="isDisabled(type)">
+            {{ platform.label }}（{{ type }}）
           </button>
         </div>
       </div>
@@ -125,38 +77,42 @@ export default Vue.extend({
       translationResult: '',
       notification: { message: '', type: 'success' },
       uploadedFileUrl: "",
-      debouncedTranslate: null as unknown as (text: string) => void, // 🔥 翻訳用のデバウンス関数
-      user: { name: '' }
+      debouncedTranslate: null as unknown as () => void,
+      user: { name: '' },
+      platforms: [
+        { name: 'twitter', label: 'Twitter', buttonClass: 'bg-blue-400', types: ['テキスト', '翻訳', '両方', '画像/動画'] },
+        { name: 'facebook', label: 'Facebook', buttonClass: 'bg-yellow-400', types: ['テキスト', '翻訳', '両方', '画像/動画'] },
+        { name: 'instagram', label: 'Instagram', buttonClass: 'bg-pink-400', types: ['テキスト', '翻訳', '両方', '画像/動画'] },
+        { name: 'linkedin', label: 'LinkedIn', buttonClass: 'bg-blue-700', types: ['テキスト', '翻訳', '両方', '画像/動画'] }
+      ]
     };
   },
   computed: {
     isTextTooLong() {
       return this.postText.length > 140;
-    },
+    }
   },
   methods: {
-    async login(platform: string) {
+    async translateText() {
+      if (!this.postText.trim()) {
+        this.translationResult = '';
+        return;
+      }
       try {
-        const response = await this.$axios.$get(`/api/auth/${platform}`);
-
-        // 🔥 ユーザー名と認証トークンを保存
-        this.user.name = response.user.name;
-        sessionStorage.setItem('accessToken', response.accessToken); // 🔥 トークンを保存！
-
-        this.notification = { message: `${platform.toUpperCase()} ログイン成功`, type: 'success' };
+        const response = await this.$axios.$post('/api/translate', { text: this.postText, targetLang: 'en' });
+        this.translationResult = response.translatedText;
       } catch (error) {
-        console.error(`${platform} ログイン失敗:`, error);
-        this.notification = { message: `${platform.toUpperCase()} ログイン失敗`, type: 'error' };
+        console.error('翻訳エラー:', error);
+        this.notification = { message: '翻訳に失敗しました', type: 'error' };
       }
     },
-
     async postToSNS(platform: string, type: string) {
       if (this.isTextTooLong) {
         this.notification = { message: '140文字以内で入力してください。', type: 'error' };
         return;
       }
 
-      let textToPost = this.postText;
+      const textToPost = type === '翻訳' ? this.translationResult : this.postText;
       const accessToken = sessionStorage.getItem('accessToken');
       if (!accessToken) {
         this.notification = { message: 'ログインが必要です', type: 'error' };
@@ -164,10 +120,12 @@ export default Vue.extend({
       }
 
       try {
-        const response = await this.$axios.$post(`/api/post-to-${platform}`,
-          { text: textToPost },
-          { headers: { Authorization: `Bearer ${accessToken}` } } // 🔥 認証トークンを送信！
-        );
+        const response = await this.$axios.$post(`/api/post-to-${platform}`, {
+          text: textToPost,
+          mediaUrl: this.uploadedFileUrl
+        }, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
 
         this.notification = { message: `${platform.toUpperCase()} 投稿成功: ${response.message}`, type: 'success' };
       } catch (error) {
@@ -175,27 +133,27 @@ export default Vue.extend({
         this.notification = { message: `${platform.toUpperCase()} 投稿失敗`, type: 'error' };
       }
     },
-
-    async translateText(text: string): Promise<void> {
+    async login(platform: string) {
       try {
-        const response = await this.$axios.$post('/api/translate', { 
-          text,
-          targetLang: 'en'  // 翻訳先言語を指定
-        });
-        this.translationResult = response.translatedText;
+        const response = await this.$axios.$get(`/api/auth/${platform}`);
+        this.user.name = response.user.name;
+        sessionStorage.setItem('accessToken', response.accessToken);
+        this.notification = { message: `${platform.toUpperCase()} ログイン成功`, type: 'success' };
       } catch (error) {
-        console.error('翻訳エラー:', error);
-        this.notification = { message: '翻訳に失敗しました', type: 'error' };
+        console.error(`${platform} ログイン失敗:`, error);
+        this.notification = { message: `${platform.toUpperCase()} ログイン失敗`, type: 'error' };
       }
     },
-
-    addFileUrlToPost(url: string): void {
+    addFileUrlToPost(url: string) {
       this.uploadedFileUrl = url;
       this.notification = { message: 'ファイルのアップロードが完了しました', type: 'success' };
     },
+    isDisabled(type: string) {
+      return this.isTextTooLong || (type === '画像/動画' && !this.uploadedFileUrl);
+    }
   },
   created() {
     this.debouncedTranslate = debounce(this.translateText, 500);
-  },
+  }
 });
 </script>

@@ -5,6 +5,7 @@ const passport = require('passport');
 const TwitterStrategy = require('passport-twitter').Strategy;
 const FacebookStrategy = require('passport-facebook').Strategy;
 const InstagramStrategy = require('passport-instagram').Strategy;
+const LinkedInStrategy = require('passport-oauth2');
 
 const app = express();
 app.use(express.json());
@@ -55,16 +56,28 @@ passport.use(new InstagramStrategy({
   return done(null, { profile, accessToken });
 }));
 
+// **LinkedIn認証の追加**
+passport.use(new LinkedInStrategy({
+  authorizationURL: 'https://www.linkedin.com/oauth/v2/authorization',
+  tokenURL: 'https://www.linkedin.com/oauth/v2/accessToken',
+  clientID: process.env.LINKEDIN_CLIENT_ID || "dummy_client_id",
+  clientSecret: process.env.LINKEDIN_CLIENT_SECRET || "dummy_client_secret",
+  callbackURL: "http://localhost:3000/auth/linkedin/callback",
+  scope: ['r_liteprofile', 'r_emailaddress', 'w_member_social']
+}, (accessToken, refreshToken, profile, done) => {
+  return done(null, { profile, accessToken });
+}));
+
 // **各SNSの認証ルート**
 app.get('/auth/twitter', passport.authenticate('twitter'));
 app.get('/auth/facebook', passport.authenticate('facebook'));
 app.get('/auth/instagram', passport.authenticate('instagram'));
+app.get('/auth/linkedin', passport.authenticate('oauth2'));
 
 // **認証成功後のリダイレクト処理**
 app.get('/auth/twitter/callback', passport.authenticate('twitter', { failureRedirect: '/auth/failure' }), (req, res) => {
   if (!req.user) return res.redirect('/auth/failure');
   
-  // 🔥 認証成功時に accessToken も返すように修正！
   res.json({ message: "認証成功", user: req.user.profile, accessToken: req.user.token });
 });
 
@@ -78,6 +91,12 @@ app.get('/auth/instagram/callback', passport.authenticate('instagram', { failure
   if (!req.user) return res.redirect('/auth/failure');
 
   res.json({ message: "認証成功", user: req.user.profile, accessToken: req.user.accessToken });
+});
+
+app.get('/auth/linkedin/callback', passport.authenticate('oauth2', { failureRedirect: '/auth/failure' }), (req, res) => {
+  if (!req.user) return res.redirect('/auth/failure');
+
+  res.json({ message: "LinkedIn認証成功", user: req.user.profile, accessToken: req.user.accessToken });
 });
 
 // **認証結果を返すエンドポイント**
