@@ -15,7 +15,7 @@
         <button @click="login('instagram')" class="bg-pink-400 text-white px-4 py-2 rounded">
           Instagram ログイン
         </button>
-        <button @click="login('linkedin')" class="bg-blue-700 text-white px-4 py-2 rounded">
+        <button @click="login('linkedin')" class="bg-green-400 text-white px-4 py-2 rounded">
           LinkedIn ログイン
         </button>
       </div>
@@ -83,7 +83,7 @@ export default Vue.extend({
         { name: 'twitter', label: 'Twitter', buttonClass: 'bg-blue-400', types: ['テキスト', '翻訳', '両方', '画像/動画'] },
         { name: 'facebook', label: 'Facebook', buttonClass: 'bg-yellow-400', types: ['テキスト', '翻訳', '両方', '画像/動画'] },
         { name: 'instagram', label: 'Instagram', buttonClass: 'bg-pink-400', types: ['テキスト', '翻訳', '両方', '画像/動画'] },
-        { name: 'linkedin', label: 'LinkedIn', buttonClass: 'bg-blue-700', types: ['テキスト', '翻訳', '両方', '画像/動画'] }
+        { name: 'linkedin', label: 'LinkedIn', buttonClass: 'bg-green-400', types: ['テキスト', '翻訳', '両方', '画像/動画'] }
       ]
     };
   },
