@@ -2,6 +2,23 @@
   <div class="container mx-auto p-4">
     <h1 class="text-2xl font-bold mb-4">Cor.Inc SNS</h1>
 
+    <!-- 🔹 SNS認証ボタン -->
+    <div class="mb-4">
+      <h2 class="text-xl font-bold mb-2">SNSログイン</h2>
+      <div class="flex space-x-2">
+        <button @click="login('twitter')" class="bg-blue-400 text-white px-4 py-2 rounded">
+          Twitter ログイン
+        </button>
+        <button @click="login('facebook')" class="bg-yellow-400 text-white px-4 py-2 rounded">
+          Facebook ログイン
+        </button>
+        <button @click="login('instagram')" class="bg-pink-400 text-white px-4 py-2 rounded">
+          Instagram ログイン
+        </button>
+      </div>
+      <p v-if="user.name" class="text-green-600 mt-2">ログイン中: {{ user.name }}</p>
+    </div>
+
     <!-- テキスト入力 -->
     <div class="mb-4">
       <label for="inputText" class="block text-lg">テキスト入力（最大140文字）</label>
@@ -88,7 +105,7 @@
       </div>
     </div>
 
-    <!-- 通知表示 -->
+    <!-- 🔹 通知表示 -->
     <Notification v-if="notification.message" :message="notification.message" :type="notification.type" />
   </div>
 </template>
@@ -109,6 +126,7 @@ export default Vue.extend({
       notification: { message: '', type: 'success' },
       uploadedFileUrl: "",
       debouncedTranslate: null as unknown as (text: string) => void, // 🔥 翻訳用のデバウンス関数
+      user: { name: '' }
     };
   },
   computed: {
@@ -116,17 +134,22 @@ export default Vue.extend({
       return this.postText.length > 140;
     },
   },
-  watch: {
-    postText: {
-      handler(newText) {
-        if (this.debouncedTranslate) {
-          this.debouncedTranslate(newText); // 🔥 テキスト変更時に翻訳を実行
-        }
-      },
-      immediate: true,
-    },
-  },
   methods: {
+    async login(platform: string) {
+      try {
+        const response = await this.$axios.$get(`/api/auth/${platform}`);
+
+        // 🔥 ユーザー名と認証トークンを保存
+        this.user.name = response.user.name;
+        sessionStorage.setItem('accessToken', response.accessToken); // 🔥 トークンを保存！
+
+        this.notification = { message: `${platform.toUpperCase()} ログイン成功`, type: 'success' };
+      } catch (error) {
+        console.error(`${platform} ログイン失敗:`, error);
+        this.notification = { message: `${platform.toUpperCase()} ログイン失敗`, type: 'error' };
+      }
+    },
+
     async postToSNS(platform: string, type: string) {
       if (this.isTextTooLong) {
         this.notification = { message: '140文字以内で入力してください。', type: 'error' };
@@ -134,20 +157,18 @@ export default Vue.extend({
       }
 
       let textToPost = this.postText;
-      if (type === 'translated') {
-        textToPost = this.translationResult;
-      } else if (type === 'both') {
-        textToPost = `原文: ${this.postText}\n翻訳: ${this.translationResult}`;
-      } else if (type === 'media') {
-        if (!this.uploadedFileUrl) {
-          this.notification = { message: '画像または動画をアップロードしてください。', type: 'error' };
-          return;
-        }
-        textToPost = `📷 ${this.uploadedFileUrl}`;
+      const accessToken = sessionStorage.getItem('accessToken');
+      if (!accessToken) {
+        this.notification = { message: 'ログインが必要です', type: 'error' };
+        return;
       }
 
       try {
-        const response = await this.$axios.$post(`/api/post-to-${platform}`, { text: textToPost });
+        const response = await this.$axios.$post(`/api/post-to-${platform}`,
+          { text: textToPost },
+          { headers: { Authorization: `Bearer ${accessToken}` } } // 🔥 認証トークンを送信！
+        );
+
         this.notification = { message: `${platform.toUpperCase()} 投稿成功: ${response.message}`, type: 'success' };
       } catch (error) {
         console.error(error);
@@ -155,15 +176,11 @@ export default Vue.extend({
       }
     },
 
-    addFileUrlToPost(url: string) {
-      this.uploadedFileUrl = url;
-    },
-
-    async translateText(text: string) {
+    async translateText(text: string): Promise<void> {
       try {
-        const response = await this.$axios.$post('/api/translate', {
+        const response = await this.$axios.$post('/api/translate', { 
           text,
-          targetLang: 'en' // 翻訳先言語を指定
+          targetLang: 'en'  // 翻訳先言語を指定
         });
         this.translationResult = response.translatedText;
       } catch (error) {
@@ -171,9 +188,14 @@ export default Vue.extend({
         this.notification = { message: '翻訳に失敗しました', type: 'error' };
       }
     },
+
+    addFileUrlToPost(url: string): void {
+      this.uploadedFileUrl = url;
+      this.notification = { message: 'ファイルのアップロードが完了しました', type: 'success' };
+    },
   },
   created() {
-    this.debouncedTranslate = debounce(this.translateText, 500); // 🔥 翻訳処理をデバウンス化
+    this.debouncedTranslate = debounce(this.translateText, 500);
   },
 });
 </script>

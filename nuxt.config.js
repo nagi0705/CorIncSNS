@@ -45,9 +45,12 @@ export default {
   // サーバーミドルウェアの登録
   serverMiddleware: [
     '~/server-middleware/twitter.js',
+    '~/server-middleware/facebook.js',
+    '~/server-middleware/instagram.js',
     '~/server-middleware/sns.js',
     '~/server-middleware/translate.js',
-    '~/server-middleware/upload.js'
+    '~/server-middleware/upload.js',
+    '~/server-middleware/auth.js'
   ],
 
   // ビルド設定
