@@ -5,17 +5,22 @@ const axios = require('axios');
 const app = express();
 app.use(express.json());
 
+/**
+ * 📌 翻訳APIエンドポイント
+ * POST /api/translate
+ * { "text": "こんにちは", "targetLang": "en" }
+ */
 app.post('/api/translate', async (req, res) => {
   const { text, targetLang } = req.body;
 
-  console.log("🔍 受信したリクエスト:", req.body); // 🔥 ログを追加
+  console.log("🔍 受信した翻訳リクエスト:", { text, targetLang });
 
   if (!text || !targetLang) {
-    console.error("🚨 翻訳エラー: テキストまたはターゲット言語が未定義");
     return res.status(400).json({ error: 'テキストとターゲット言語が必要です' });
   }
 
   try {
+    // Google Translate APIを使用
     const response = await axios.post('https://translate.googleapis.com/translate_a/single', null, {
       params: {
         client: 'gtx',
@@ -33,6 +38,5 @@ app.post('/api/translate', async (req, res) => {
     res.status(500).json({ error: '翻訳に失敗しました' });
   }
 });
-
 
 module.exports = app;

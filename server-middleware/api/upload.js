@@ -7,13 +7,15 @@ const fs = require('fs');
 const app = express();
 app.use(express.json());
 
-// アップロードディレクトリを作成（なければ）
-const uploadDir = path.join(__dirname, '../static/uploads');
+// 📌 アップロードフォルダのパス
+const uploadDir = path.join(__dirname, '../../static/uploads');
+
+// フォルダが存在しない場合は作成
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Multerの設定（ファイルの保存先とファイル名設定）
+// 📌 Multer設定（ファイルの保存先とファイル名）
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, uploadDir);
@@ -25,23 +27,26 @@ const storage = multer.diskStorage({
     }
 });
 
-// ファイルアップロードの制限（画像・動画のみ）
+// 📌 ファイルフィルター（画像・動画のみ）
 const fileFilter = (req, file, cb) => {
     if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
         cb(null, true);
     } else {
-        cb(new Error('Invalid file type. Only images and videos are allowed.'), false);
+        cb(new Error('無効なファイルタイプです（画像・動画のみ許可）'), false);
     }
 };
 
-// アップロードの設定
+// 📌 アップロード制限（50MB）
 const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
-    limits: { fileSize: 50 * 1024 * 1024 } // 50MB制限
+    limits: { fileSize: 50 * 1024 * 1024 }
 });
 
-// **アップロード用API**
+/**
+ * 📌 ファイルアップロードAPIエンドポイント
+ * POST /api/upload
+ */
 app.post('/api/upload', upload.single('file'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'ファイルがアップロードされていません' });
